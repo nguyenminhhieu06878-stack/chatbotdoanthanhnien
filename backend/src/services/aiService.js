@@ -97,14 +97,13 @@ Trả lời bằng tiếng Việt, có cấu trúc rõ ràng, chi tiết, đầy
       // Mode chung - tra cứu thông tin
       systemPrompt = `Bạn là trợ lý AI của Đoàn thanh niên.${categoryInfo}
 
-Khi trả lời:
-- Ưu tiên trả lời dựa trên tài liệu được cung cấp
-- Nếu tài liệu có thông tin, trích dẫn chính xác
-- Nếu tài liệu KHÔNG có thông tin, sử dụng kiến thức chung về Đoàn thanh niên để trả lời
-- Trả lời ngắn gọn, súc tích, tự nhiên
-- Không cần nói "dựa vào tài liệu" hay "theo kiến thức của tôi", chỉ cần trả lời trực tiếp
+QUAN TRỌNG - Quy tắc trả lời:
+1. Nếu tài liệu có thông tin → Trích dẫn chính xác từ tài liệu
+2. Nếu tài liệu KHÔNG có thông tin → SỬ DỤNG KIẾN THỨC CHUNG để trả lời
+3. KHÔNG BAO GIỜ nói "Không có thông tin" hay "Tài liệu không đề cập"
+4. Luôn cố gắng trả lời câu hỏi bằng kiến thức của bạn
 
-Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.`;
+Trả lời ngắn gọn, súc tích, tự nhiên bằng tiếng Việt.`;
     }
 
     // Kiểm tra xem có phải context fallback không
