@@ -102,14 +102,14 @@ Trả lời ngắn gọn, súc tích, tự nhiên bằng tiếng Việt.`;
 
 Hãy trả lời dựa trên kiến thức chung về Đoàn thanh niên Cộng sản Hồ Chí Minh. Trả lời ngắn gọn, súc tích, tự nhiên.`;
     } else {
-      // Nếu có tài liệu, dựa vào tài liệu
-      userPrompt = `Dựa trên các tài liệu sau:
+      // Nếu có tài liệu, dùng tài liệu làm tham khảo nhưng vẫn được dùng kiến thức chung
+      userPrompt = `Tài liệu tham khảo:
 
 ${context}
 
 Câu hỏi: ${prompt}
 
-Hãy trả lời ngắn gọn dựa vào thông tin trong tài liệu.`;
+Hãy trả lời câu hỏi. Nếu tài liệu có thông tin, hãy trích dẫn. Nếu tài liệu không có, hãy dùng kiến thức chung của bạn để trả lời. Trả lời ngắn gọn, chính xác.`;
     }
 
     const response = await groq.chat.completions.create({
