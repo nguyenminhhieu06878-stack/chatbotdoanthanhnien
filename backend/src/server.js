@@ -24,7 +24,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors({
@@ -83,6 +83,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server đang hoạt động' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server đang chạy tại http://0.0.0.0:${PORT}`);
+  console.log(`📡 PORT từ env: ${process.env.PORT || 'không có, dùng 8080'}`);
 });
