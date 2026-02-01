@@ -504,7 +504,17 @@ Bạn có muốn hỏi điều gì khác không?`,
     let response = await generateResponse(message, context, requestedCategory, mode);
     
     // Kiểm tra nếu AI không tìm thấy thông tin trong tài liệu, thử dùng kiến thức chung
-    const noInfoKeywords = ['không có thông tin', 'không tìm thấy', 'xin lỗi', 'không thể trả lời', 'không cung cấp thông tin', 'tài liệu không'];
+    const noInfoKeywords = [
+      'không có thông tin',
+      'không tìm thấy',
+      'xin lỗi',
+      'không thể trả lời',
+      'không cung cấp thông tin',
+      'tài liệu không',
+      'trong tài liệu',
+      'không đề cập',
+      'chưa có thông tin'
+    ];
     const hasNoInfo = noInfoKeywords.some(keyword => response.toLowerCase().includes(keyword));
     
     if (hasNoInfo) {
