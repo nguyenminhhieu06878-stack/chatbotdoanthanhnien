@@ -2,15 +2,21 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, Mic, MicOff, Volume2, VolumeX, Sparkles, 
-  MessageCircle, Loader2 
+  MessageCircle, Loader2, Plus
 } from 'lucide-react';
 import api from '../config/api';
 import ReactMarkdown from 'react-markdown';
 import Button from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
+const CHAT_HISTORY_KEY = 'doan_chat_history';
+
 function ChatPage() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    // Load lịch sử chat từ localStorage khi khởi tạo
+    const saved = localStorage.getItem(CHAT_HISTORY_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -18,6 +24,20 @@ function ChatPage() {
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
+
+  // Lưu lịch sử chat vào localStorage mỗi khi messages thay đổi
+  useEffect(() => {
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
+  }, [messages]);
+
+  // Hàm xóa lịch sử và bắt đầu chat mới
+  const handleNewChat = () => {
+    if (messages.length > 0 && !confirm('Bạn có chắc muốn bắt đầu cuộc trò chuyện mới? Lịch sử hiện tại sẽ bị xóa.')) {
+      return;
+    }
+    setMessages([]);
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,6 +180,16 @@ function ChatPage() {
                 <p className="text-sm text-gray-500">Hỗ trợ tra cứu văn bản, tài liệu 24/7</p>
               </div>
             </div>
+            {messages.length > 0 && (
+              <Button
+                onClick={handleNewChat}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Chat mới</span>
+              </Button>
+            )}
           </div>
         </div>
       </header>
