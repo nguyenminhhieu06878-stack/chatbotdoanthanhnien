@@ -60,6 +60,8 @@ function AdminPage() {
     data.append('description', formData.description);
 
     try {
+      console.log('Uploading file:', formData.file.name);
+      
       // Use the upload-test endpoint which proxies to Railway
       const response = await api.post('/api/upload-test', data, {
         headers: {
@@ -71,7 +73,7 @@ function AdminPage() {
       
       // Check if upload was successful
       if (response.data.message && response.data.message.includes('thành công')) {
-        alert('✅ Upload thành công!');
+        alert('✅ Upload file thành công!');
         setFormData({ title: '', category: 'Chung', description: '', file: null });
         document.getElementById('fileInput').value = '';
         loadDocuments(); // Refresh the document list immediately
@@ -82,7 +84,7 @@ function AdminPage() {
       console.error('Upload error:', error);
       const errorData = error.response?.data;
       
-      alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
+      alert('❌ Lỗi upload file: ' + (errorData?.error || error.message));
     } finally {
       setUploading(false);
     }

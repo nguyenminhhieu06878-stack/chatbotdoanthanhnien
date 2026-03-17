@@ -1,4 +1,9 @@
-// Disable body parser for raw body handling
+import formidable from 'formidable';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
+import fs from 'fs';
+
+// Disable body parser for file uploads
 export const config = {
   api: {
     bodyParser: false,
@@ -22,30 +27,77 @@ export default async function handler(req, res) {
   }
 
   try {
-    const railwayUrl = 'https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload';
+    console.log('Starting file upload proxy...');
     
-    // Forward the request directly to Railway
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(railwayUrl, {
-      method: 'POST',
-      body: req,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'content-length': req.headers['content-length'],
-      },
+    // Parse the multipart form data
+    const form = formidable({
+      maxFileSize: 10 * 1024 * 1024, // 10MB limit
+      keepExtensions: true,
     });
 
-    const result = await response.text();
+    const [fields, files] = await form.parse(req);
+    console.log('Parsed form data:', { fields: Object.keys(fields), files: Object.keys(files) });
     
-    // Forward the response
-    res.status(response.status);
-    res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
-    res.send(result);
+    const file = files.file?.[0];
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('File info:', { 
+      originalFilename: file.originalFilename, 
+      size: file.size, 
+      mimetype: file.mimetype 
+    });
+
+    // Read file content
+    const fileBuffer = fs.readFileSync(file.filepath);
+    console.log('File buffer size:', fileBuffer.length);
+    
+    // Create FormData for Railway API
+    const formData = new FormData();
+    
+    formData.append('file', fileBuffer, {
+      filename: file.originalFilename,
+      contentType: file.mimetype,
+    });
+    
+    // Add other fields
+    if (fields.title?.[0]) formData.append('title', fields.title[0]);
+    if (fields.category?.[0]) formData.append('category', fields.category[0]);
+    if (fields.description?.[0]) formData.append('description', fields.description[0]);
+
+    console.log('Forwarding to Railway backend...');
+
+    // Forward to Railway backend
+    const response = await fetch('https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload', {
+      method: 'POST',
+      body: formData,
+      headers: formData.getHeaders(),
+    });
+
+    console.log('Railway response status:', response.status);
+    
+    const result = await response.json();
+    console.log('Railway response:', result);
+    
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(file.filepath);
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup temp file:', cleanupError);
+    }
+
+    if (response.ok) {
+      res.status(200).json(result);
+    } else {
+      res.status(response.status).json(result);
+    }
 
   } catch (error) {
     console.error('Upload proxy error:', error);
     res.status(500).json({ 
-      error: 'Lỗi upload proxy: ' + error.message
+      error: 'Lỗi upload: ' + error.message,
+      stack: error.stack
     });
   }
 }
