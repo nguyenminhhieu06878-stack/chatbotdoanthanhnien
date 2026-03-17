@@ -1,4 +1,6 @@
 import formidable from 'formidable';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
 import fs from 'fs';
 
 // Disable body parser for file uploads
@@ -42,7 +44,6 @@ export default async function handler(req, res) {
     const fileBuffer = fs.readFileSync(file.filepath);
     
     // Create FormData for Railway API
-    const FormData = require('form-data');
     const formData = new FormData();
     
     formData.append('file', fileBuffer, {
@@ -56,7 +57,6 @@ export default async function handler(req, res) {
     if (fields.description?.[0]) formData.append('description', fields.description[0]);
 
     // Forward to Railway backend
-    const fetch = (await import('node-fetch')).default;
     const response = await fetch('https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload', {
       method: 'POST',
       body: formData,
