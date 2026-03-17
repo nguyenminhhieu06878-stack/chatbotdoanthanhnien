@@ -20,12 +20,15 @@ Vào tab "Variables" và thêm các biến sau:
 
 ```
 PORT=3001
-MONGODB_URI=your_mongodb_connection_string
-GROQ_API_KEY=your_groq_api_key
+MONGODB_URI=mongodb+srv://admin:u6kbG5LRU5si4MIm@cluster0.vkfer.mongodb.net/doan_thanh_nien?retryWrites=true&w=majority
+GROQ_API_KEY=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
 CHROMA_HOST=http://localhost:8000
 ```
 
-**Lưu ý:** Thay thế các giá trị placeholder bằng thông tin thực tế của bạn.
+**Quan trọng:** 
+- Sử dụng MongoDB Atlas thay vì Railway MongoDB để tránh lỗi connection string
+- Nếu Railway tự động tạo MongoDB service, hãy xóa nó đi và dùng Atlas
+- Đảm bảo connection string có đầy đủ hostname
 
 ### Bước 4: Cấu hình Root Directory
 1. Vào "Settings" → "Service Settings"
@@ -135,10 +138,12 @@ Mở trình duyệt: `https://your-app.vercel.app`
 2. Đảm bảo backend đã enable CORS
 3. Kiểm tra Network tab trong DevTools
 
-### CORS Error
-Backend đã cấu hình CORS, nhưng nếu vẫn lỗi:
-- Kiểm tra file `backend/src/server.js`
-- Đảm bảo frontend URL được allow
+### Railway MongoDB Service Issue
+Nếu gặp lỗi `Invalid URL: mongodb://mongo:...@:27017`:
+1. Xóa MongoDB service trong Railway (nếu có)
+2. Sử dụng MongoDB Atlas thay thế
+3. Đảm bảo connection string có hostname đầy đủ
+4. Restart deployment sau khi cập nhật environment variables
 
 ---
 
