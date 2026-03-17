@@ -288,7 +288,7 @@ export default async function handler(req, res) {
         );
         
         return res.status(200).json({
-          message: response + '\n\n💡 *Lưu ý: Thông tin này dựa trên kiến thức chung, không có trong tài liệu nội bộ.*',
+          message: response,
           sources: []
         });
       } catch (aiError) {
