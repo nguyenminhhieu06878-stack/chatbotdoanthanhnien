@@ -60,7 +60,7 @@ function AdminPage() {
     data.append('description', formData.description);
 
     try {
-      // Use Vercel proxy only (Railway direct call has CORS issues from browser)
+      // Use Vercel proxy to upload to Railway
       const response = await api.post('/api/documents/upload', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -69,14 +69,14 @@ function AdminPage() {
       
       console.log('Upload response:', response.data);
       
-      if (response.data.success === false) {
-        // Show instructions if upload is not fully implemented
-        alert(`⚠️ ${response.data.message}\n\n💡 ${response.data.instruction}\n\n📝 ${response.data.note}`);
-      } else {
+      // Check if upload was successful
+      if (response.data.message && response.data.message.includes('thành công')) {
         alert('✅ Upload thành công!');
         setFormData({ title: '', category: 'Chung', description: '', file: null });
         document.getElementById('fileInput').value = '';
-        loadDocuments();
+        loadDocuments(); // Refresh the document list
+      } else {
+        alert('⚠️ Upload có vấn đề: ' + (response.data.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Upload error:', error);
