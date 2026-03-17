@@ -1,3 +1,10 @@
+// Disable body parser for raw body handling
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,46 +22,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Simple proxy - forward the request directly to Railway
     const railwayUrl = 'https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload';
     
-    // Get the raw body
-    const chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', async () => {
-      try {
-        const body = Buffer.concat(chunks);
-        
-        // Forward to Railway with same headers and body
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch(railwayUrl, {
-          method: 'POST',
-          body: body,
-          headers: {
-            'content-type': req.headers['content-type'],
-            'content-length': req.headers['content-length'],
-          },
-        });
-
-        const result = await response.text();
-        
-        // Forward the response
-        res.status(response.status);
-        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
-        res.send(result);
-        
-      } catch (proxyError) {
-        console.error('Proxy error:', proxyError);
-        res.status(500).json({ 
-          error: 'Proxy error: ' + proxyError.message 
-        });
-      }
+    // Forward the request directly to Railway
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(railwayUrl, {
+      method: 'POST',
+      body: req,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'content-length': req.headers['content-length'],
+      },
     });
 
+    const result = await response.text();
+    
+    // Forward the response
+    res.status(response.status);
+    res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
+    res.send(result);
+
   } catch (error) {
-    console.error('Upload handler error:', error);
+    console.error('Upload proxy error:', error);
     res.status(500).json({ 
-      error: 'Handler error: ' + error.message
+      error: 'Lỗi upload proxy: ' + error.message
     });
   }
 }
