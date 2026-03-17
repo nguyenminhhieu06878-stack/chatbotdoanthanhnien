@@ -362,19 +362,6 @@ function AdminPage() {
                     </>
                   )}
                 </Button>
-                
-                <div className="mt-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => window.open('https://chatbotdoanthanhnien-production.up.railway.app', '_blank')}
-                    className="text-sm text-blue-600 hover:text-blue-800 underline"
-                  >
-                    🔗 Upload trực tiếp qua Railway Backend
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Nếu upload trên web không hoạt động, sử dụng link này
-                  </p>
-                </div>
               </form>
             </CardContent>
           </Card>
