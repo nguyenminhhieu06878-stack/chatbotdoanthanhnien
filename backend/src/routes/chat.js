@@ -56,6 +56,11 @@ router.post('/simple', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
+  // Add CORS headers manually
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   try {
     const { message, conversationHistory = [] } = req.body;
     

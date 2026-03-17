@@ -142,7 +142,7 @@ function ChatPage() {
       const botMessage = {
         role: 'assistant',
         content: response.data.message,
-        sources: response.data.sources
+        sources: Array.isArray(response.data.sources) ? response.data.sources : []
       };
       setMessages(prev => [...prev, botMessage]);
       
@@ -151,7 +151,8 @@ function ChatPage() {
       console.error('Lỗi:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.'
+        content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+        sources: []
       }]);
     } finally {
       setLoading(false);

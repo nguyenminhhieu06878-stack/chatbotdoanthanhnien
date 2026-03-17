@@ -70,7 +70,29 @@ function AdminPage() {
       document.getElementById('fileInput').value = '';
       loadDocuments();
     } catch (error) {
-      alert('❌ Lỗi upload: ' + error.response?.data?.error);
+      console.error('Upload error:', error);
+      const errorData = error.response?.data;
+      
+      if (errorData?.solution) {
+        // Show detailed instructions
+        const message = `⚠️ ${errorData.message}
+
+📋 Hướng dẫn upload file:
+
+1️⃣ ${errorData.solution.step1}
+2️⃣ ${errorData.solution.step2}  
+3️⃣ ${errorData.solution.step3}
+
+💡 ${errorData.solution.note}
+
+🔗 Link trực tiếp: ${errorData.railwayUrl}
+
+⏳ ${errorData.temporaryWorkaround}`;
+        
+        alert(message);
+      } else {
+        alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
+      }
     } finally {
       setUploading(false);
     }
