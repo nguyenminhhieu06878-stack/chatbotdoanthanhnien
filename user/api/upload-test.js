@@ -15,23 +15,46 @@ export default async function handler(req, res) {
   }
 
   try {
-    // For now, just return success to test the endpoint
-    res.status(200).json({
-      message: 'Upload thành công',
-      document: {
-        title: 'Test Document',
-        filename: 'test.txt',
-        category: 'Test',
-        status: 'ready'
-      },
-      note: 'This is a test response - actual upload functionality coming soon'
+    // Simple proxy - forward the request directly to Railway
+    const railwayUrl = 'https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload';
+    
+    // Get the raw body
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      try {
+        const body = Buffer.concat(chunks);
+        
+        // Forward to Railway with same headers and body
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(railwayUrl, {
+          method: 'POST',
+          body: body,
+          headers: {
+            'content-type': req.headers['content-type'],
+            'content-length': req.headers['content-length'],
+          },
+        });
+
+        const result = await response.text();
+        
+        // Forward the response
+        res.status(response.status);
+        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
+        res.send(result);
+        
+      } catch (proxyError) {
+        console.error('Proxy error:', proxyError);
+        res.status(500).json({ 
+          error: 'Proxy error: ' + proxyError.message 
+        });
+      }
     });
 
   } catch (error) {
-    console.error('Upload proxy error:', error);
+    console.error('Upload handler error:', error);
     res.status(500).json({ 
-      error: 'Lỗi upload: ' + error.message,
-      details: error.stack
+      error: 'Handler error: ' + error.message
     });
   }
 }

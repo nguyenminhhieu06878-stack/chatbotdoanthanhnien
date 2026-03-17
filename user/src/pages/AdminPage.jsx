@@ -52,30 +52,40 @@ function AdminPage() {
     e.preventDefault();
     if (!formData.file) return;
 
-    // Show instructions for manual upload
-    const fileName = formData.file.name;
-    const instructions = `
-📁 File đã chọn: ${fileName}
-📝 Tiêu đề: ${formData.title}
-🏷️ Danh mục: ${formData.category}
-📄 Mô tả: ${formData.description}
+    setUploading(true);
+    const data = new FormData();
+    data.append('file', formData.file);
+    data.append('title', formData.title);
+    data.append('category', formData.category);
+    data.append('description', formData.description);
 
-⚠️ Upload qua web interface đang được cải thiện.
-
-🔧 Cách upload tạm thời:
-1. Mở Railway backend: https://chatbotdoanthanhnien-production.up.railway.app
-2. Sử dụng Postman hoặc curl để upload file
-3. Hoặc gửi file cho admin để upload
-
-💡 File sẽ xuất hiện trong danh sách sau khi upload thành công.
-    `;
-
-    alert(instructions);
-    
-    // Auto refresh documents list after 5 seconds
-    setTimeout(() => {
-      loadDocuments();
-    }, 5000);
+    try {
+      // Use the upload-test endpoint which proxies to Railway
+      const response = await api.post('/api/upload-test', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Upload response:', response.data);
+      
+      // Check if upload was successful
+      if (response.data.message && response.data.message.includes('thành công')) {
+        alert('✅ Upload thành công!');
+        setFormData({ title: '', category: 'Chung', description: '', file: null });
+        document.getElementById('fileInput').value = '';
+        loadDocuments(); // Refresh the document list immediately
+      } else {
+        alert('⚠️ Upload có vấn đề: ' + (response.data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorData = error.response?.data;
+      
+      alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = async (id) => {
