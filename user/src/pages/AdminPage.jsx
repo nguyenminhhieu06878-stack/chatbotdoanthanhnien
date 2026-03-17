@@ -5,7 +5,7 @@ import {
   FileText, Upload, LogOut, CheckCircle, Clock, 
   Eye, Trash2, X, FileType, Calendar, Tag, AlertCircle 
 } from 'lucide-react';
-import api from '../config/api';
+import api, { railwayApi } from '../config/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
@@ -60,7 +60,8 @@ function AdminPage() {
     data.append('description', formData.description);
 
     try {
-      await api.post('/api/documents/upload', data, {
+      // Try Railway API directly first
+      await railwayApi.post('/api/documents/upload', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -69,13 +70,27 @@ function AdminPage() {
       setFormData({ title: '', category: 'Chung', description: '', file: null });
       document.getElementById('fileInput').value = '';
       loadDocuments();
-    } catch (error) {
-      console.error('Upload error:', error);
-      const errorData = error.response?.data;
+    } catch (railwayError) {
+      console.error('Railway upload error:', railwayError);
       
-      if (errorData?.solution) {
-        // Show detailed instructions
-        const message = `⚠️ ${errorData.message}
+      // Fallback to Vercel proxy
+      try {
+        await api.post('/api/documents/upload', data, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        alert('✅ Upload thành công qua proxy!');
+        setFormData({ title: '', category: 'Chung', description: '', file: null });
+        document.getElementById('fileInput').value = '';
+        loadDocuments();
+      } catch (error) {
+        console.error('Upload error:', error);
+        const errorData = error.response?.data;
+        
+        if (errorData?.solution) {
+          // Show detailed instructions
+          const message = `⚠️ ${errorData.message}
 
 📋 Hướng dẫn upload file:
 
@@ -89,9 +104,10 @@ function AdminPage() {
 
 ⏳ ${errorData.temporaryWorkaround}`;
         
-        alert(message);
-      } else {
-        alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
+          alert(message);
+        } else {
+          alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
+        }
       }
     } finally {
       setUploading(false);
