@@ -43,10 +43,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL;
 
 if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI không được định nghĩa trong environment variables');
+  console.error('❌ MONGODB_URI hoặc MONGO_URL không được định nghĩa trong environment variables');
   console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('MONGO')));
   process.exit(1);
 }

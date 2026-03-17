@@ -8,13 +8,16 @@ router.get('/test', async (req, res) => {
   try {
     console.log('🧪 Testing chat service...');
     
-    // Test basic response
-    const testResponse = await processChat('xin chào', []);
-    
+    // Test simple response without AI
     res.json({
       status: 'success',
-      message: 'Chat service is working',
-      testResponse: testResponse.message.substring(0, 100) + '...'
+      message: 'Backend is working',
+      timestamp: new Date().toISOString(),
+      env: {
+        hasGroqKey: !!process.env.GROQ_API_KEY,
+        hasMongoUri: !!process.env.MONGODB_URI,
+        chromaHost: process.env.CHROMA_HOST
+      }
     });
   } catch (error) {
     console.error('❌ Test failed:', error);
