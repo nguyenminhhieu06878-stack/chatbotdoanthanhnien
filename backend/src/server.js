@@ -33,7 +33,11 @@ app.use(cors({
     'http://localhost:5174', 
     'http://localhost:3000',
     'https://user-ashy-ten.vercel.app',
-    'https://user-ashy-ten.vercel.app/'
+    'https://user-ashy-ten.vercel.app/',
+    'https://doanthanhnien.vercel.app',
+    'https://doanthanhnien.vercel.app/',
+    'https://chatbotdoanthanhnien-myb7ruya.vercel.app',
+    'https://chatbotdoanthanhnien-myb7ruya.vercel.app/'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
