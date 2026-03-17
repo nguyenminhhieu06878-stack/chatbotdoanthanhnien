@@ -60,55 +60,29 @@ function AdminPage() {
     data.append('description', formData.description);
 
     try {
-      // Try Railway API directly first
-      await railwayApi.post('/api/documents/upload', data, {
+      // Use Vercel proxy only (Railway direct call has CORS issues from browser)
+      const response = await api.post('/api/documents/upload', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      alert('✅ Upload thành công!');
-      setFormData({ title: '', category: 'Chung', description: '', file: null });
-      document.getElementById('fileInput').value = '';
-      loadDocuments();
-    } catch (railwayError) {
-      console.error('Railway upload error:', railwayError);
       
-      // Fallback to Vercel proxy
-      try {
-        await api.post('/api/documents/upload', data, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        alert('✅ Upload thành công qua proxy!');
+      console.log('Upload response:', response.data);
+      
+      if (response.data.success === false) {
+        // Show instructions if upload is not fully implemented
+        alert(`⚠️ ${response.data.message}\n\n💡 ${response.data.instruction}\n\n📝 ${response.data.note}`);
+      } else {
+        alert('✅ Upload thành công!');
         setFormData({ title: '', category: 'Chung', description: '', file: null });
         document.getElementById('fileInput').value = '';
         loadDocuments();
-      } catch (error) {
-        console.error('Upload error:', error);
-        const errorData = error.response?.data;
-        
-        if (errorData?.solution) {
-          // Show detailed instructions
-          const message = `⚠️ ${errorData.message}
-
-📋 Hướng dẫn upload file:
-
-1️⃣ ${errorData.solution.step1}
-2️⃣ ${errorData.solution.step2}  
-3️⃣ ${errorData.solution.step3}
-
-💡 ${errorData.solution.note}
-
-🔗 Link trực tiếp: ${errorData.railwayUrl}
-
-⏳ ${errorData.temporaryWorkaround}`;
-        
-          alert(message);
-        } else {
-          alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
-        }
       }
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorData = error.response?.data;
+      
+      alert('❌ Lỗi upload: ' + (errorData?.error || error.message));
     } finally {
       setUploading(false);
     }
@@ -386,6 +360,19 @@ function AdminPage() {
                     </>
                   )}
                 </Button>
+                
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => window.open('https://chatbotdoanthanhnien-production.up.railway.app', '_blank')}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    🔗 Upload trực tiếp qua Railway Backend
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Nếu upload trên web không hoạt động, sử dụng link này
+                  </p>
+                </div>
               </form>
             </CardContent>
           </Card>
