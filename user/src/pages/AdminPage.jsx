@@ -41,7 +41,7 @@ function AdminPage() {
 
   const loadDocuments = async () => {
     try {
-      const response = await api.get('/api/documents-supabase');
+      const response = await api.get('/api/documents');
       setDocuments(response.data);
     } catch (error) {
       console.error('Lỗi tải tài liệu:', error);
@@ -62,8 +62,8 @@ function AdminPage() {
     try {
       console.log('Uploading file:', formData.file.name);
       
-      // Use the new Supabase upload endpoint
-      const response = await api.post('/api/upload-supabase', data, {
+      // Use the Supabase upload endpoint
+      const response = await api.post('/api/upload', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

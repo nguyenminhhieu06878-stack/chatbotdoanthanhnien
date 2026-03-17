@@ -134,7 +134,7 @@ function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await api.post('/api/chat-supabase', {
+      const response = await api.post('/api/chat', {
         message: input,
         conversationHistory: messages
       });

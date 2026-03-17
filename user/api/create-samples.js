@@ -1,12 +1,11 @@
-import connectDB from '../lib/mongodb.js';
-import Document from '../models/Document.js';
+import { supabase } from '../lib/supabase.js';
 
 const sampleDocuments = [
   {
     title: "Hướng dẫn tổ chức sự kiện",
     filename: "sample-huong-dan-to-chuc-su-kien.txt",
     filepath: "/uploads/sample-huong-dan-to-chuc-su-kien.txt",
-    fileType: ".txt",
+    file_type: ".txt",
     category: "Hướng dẫn",
     description: "Hướng dẫn chi tiết về cách tổ chức các sự kiện của Đoàn",
     content: `HƯỚNG DẪN TỔ CHỨC SỰ KIỆN ĐOÀN THANH NIÊN
@@ -27,13 +26,14 @@ const sampleDocuments = [
 - Thu thập ý kiến phản hồi từ người tham gia
 - Đánh giá hiệu quả và rút kinh nghiệm
 - Lập báo cáo tổng kết gửi cấp trên
-- Lưu trữ tài liệu và hình ảnh sự kiện`
+- Lưu trữ tài liệu và hình ảnh sự kiện`,
+    status: 'ready'
   },
   {
     title: "Nhiệm vụ Ban Chấp hành",
     filename: "sample-nhiem-vu-ban-chap-hanh.txt",
     filepath: "/uploads/sample-nhiem-vu-ban-chap-hanh.txt",
-    fileType: ".txt",
+    file_type: ".txt",
     category: "Văn bản",
     description: "Quy định về nhiệm vụ và trách nhiệm của Ban Chấp hành",
     content: `NHIỆM VỤ VÀ TRÁCH NHIỆM CỦA BAN CHẤP HÀNH ĐOÀN
@@ -54,13 +54,14 @@ const sampleDocuments = [
 - Quyết định các vấn đề trong phạm vi thẩm quyền
 - Khen thưởng và kỷ luật đoàn viên
 - Đề xuất với cấp trên về nhân sự và tổ chức
-- Quản lý tài chính và tài sản của tổ chức`
+- Quản lý tài chính và tài sản của tổ chức`,
+    status: 'ready'
   },
   {
     title: "Nhiệm vụ Chi đoàn cơ sở",
     filename: "sample-nhiem-vu-chi-doan.txt",
     filepath: "/uploads/sample-nhiem-vu-chi-doan.txt",
-    fileType: ".txt",
+    file_type: ".txt",
     category: "Văn bản",
     description: "Hướng dẫn về nhiệm vụ của Chi đoàn cơ sở",
     content: `NHIỆM VỤ CHI ĐOÀN CƠ SỞ
@@ -81,13 +82,14 @@ const sampleDocuments = [
 - Tổ chức các hoạt động văn hóa, thể thao
 - Tham gia công tác xã hội, tình nguyện
 - Hỗ trợ đoàn viên trong học tập, công việc
-- Phối hợp với các tổ chức khác tại cơ sở`
+- Phối hợp với các tổ chức khác tại cơ sở`,
+    status: 'ready'
   },
   {
     title: "Ý tưởng hoạt động Đoàn",
     filename: "sample-y-tuong-hoat-dong.txt",
     filepath: "/uploads/sample-y-tuong-hoat-dong.txt",
-    fileType: ".txt",
+    file_type: ".txt",
     category: "Hướng dẫn",
     description: "Tổng hợp các ý tưởng hoạt động cho tổ chức Đoàn",
     content: `Ý TƯỞNG HOẠT ĐỘNG ĐOÀN THANH NIÊN
@@ -114,7 +116,8 @@ const sampleDocuments = [
 - Giải bóng đá, bóng chuyền
 - Hội thao truyền thống
 - Chạy bộ vì sức khỏe cộng đồng
-- Các môn thể thao dân tộc`
+- Các môn thể thao dân tộc`,
+    status: 'ready'
   }
 ];
 
@@ -134,28 +137,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    await connectDB();
-
     // Check if sample documents already exist
-    const existingCount = await Document.countDocuments();
-    if (existingCount > 0) {
+    const { count, error: countError } = await supabase
+      .from('documents')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Count error:', countError);
+      return res.status(500).json({ error: countError.message });
+    }
+
+    if (count > 0) {
       return res.status(200).json({ 
         message: 'Sample documents already exist',
-        count: existingCount 
+        count: count 
       });
     }
 
+    // Add uploaded_at timestamp to all documents
+    const documentsWithTimestamp = sampleDocuments.map(doc => ({
+      ...doc,
+      uploaded_at: new Date().toISOString()
+    }));
+
     // Create sample documents
-    const createdDocs = await Document.insertMany(sampleDocuments);
+    const { data: createdDocs, error } = await supabase
+      .from('documents')
+      .insert(documentsWithTimestamp)
+      .select('id, title, category');
+
+    if (error) {
+      console.error('Insert error:', error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.status(200).json({
       success: true,
       message: `Created ${createdDocs.length} sample documents`,
-      documents: createdDocs.map(doc => ({
-        id: doc._id,
-        title: doc.title,
-        category: doc.category
-      }))
+      documents: createdDocs
     });
 
   } catch (error) {

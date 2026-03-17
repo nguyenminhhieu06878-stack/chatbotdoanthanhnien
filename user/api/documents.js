@@ -1,4 +1,5 @@
-// Vercel serverless function to proxy document requests
+import { supabase } from '../lib/supabase.js';
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,67 +13,76 @@ export default async function handler(req, res) {
   }
 
   try {
-    let url = 'https://chatbotdoanthanhnien-production.up.railway.app/api/documents';
-    
-    // Handle different paths
-    if (req.url && req.url !== '/api/documents') {
-      const path = req.url.replace('/api/documents', '');
-      url += path;
-    }
+    if (req.method === 'GET') {
+      // Get all documents
+      const { data: documents, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
 
-    // Special handling for upload
-    if (req.url && req.url.includes('/upload')) {
-      if (req.method === 'POST') {
-        // Return instructions for upload since Vercel proxy can't handle file uploads easily
-        return res.status(200).json({ 
-          success: false,
-          message: 'Upload file qua Vercel proxy chưa được hỗ trợ đầy đủ.',
-          instructions: {
-            method1: 'Sử dụng Railway backend trực tiếp',
-            method2: 'Hoặc upload file qua Railway dashboard',
-            method3: 'Liên hệ admin để được hỗ trợ upload file'
-          },
-          railwayUploadUrl: 'https://chatbotdoanthanhnien-production.up.railway.app/api/documents/upload'
-        });
+      if (error) {
+        console.error('Supabase error:', error);
+        return res.status(500).json({ error: error.message });
       }
+
+      return res.status(200).json(documents);
     }
 
-    const fetchOptions = {
-      method: req.method,
-      headers: {},
-    };
+    if (req.method === 'POST') {
+      // Create new document (for sample data)
+      const { title, filename, filepath, fileType, category, description, content } = req.body;
+      
+      const { data: document, error } = await supabase
+        .from('documents')
+        .insert([{
+          title: title || filename,
+          filename,
+          filepath,
+          file_type: fileType,
+          category: category || 'Chung',
+          description,
+          content,
+          status: 'ready',
+          uploaded_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
 
-    // Handle different content types
-    if (req.method !== 'GET') {
-      if (req.headers['content-type']?.includes('multipart/form-data')) {
-        // For file uploads, we need to handle FormData differently
-        // This is a simplified version - in production you might need more complex handling
-        fetchOptions.body = JSON.stringify(req.body);
-        fetchOptions.headers['Content-Type'] = 'application/json';
-      } else {
-        fetchOptions.body = JSON.stringify(req.body);
-        fetchOptions.headers['Content-Type'] = 'application/json';
+      if (error) {
+        console.error('Supabase error:', error);
+        return res.status(500).json({ error: error.message });
       }
+      
+      return res.status(201).json(document);
     }
 
-    const response = await fetch(url, fetchOptions);
-    
-    let data;
-    try {
-      data = await response.json();
-    } catch (e) {
-      data = { message: 'Response received' };
-    }
-    
-    if (!response.ok) {
-      return res.status(response.status).json(data);
+    if (req.method === 'DELETE') {
+      // Delete document
+      const { id } = req.query;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'Document ID is required' });
+      }
+      
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return res.status(500).json({ error: error.message });
+      }
+      
+      return res.status(200).json({ message: 'Document deleted successfully' });
     }
 
-    res.status(200).json(data);
+    return res.status(405).json({ error: 'Method not allowed' });
+
   } catch (error) {
-    console.error('Documents proxy error:', error);
+    console.error('Documents API error:', error);
     res.status(500).json({ 
-      error: 'Lỗi kết nối đến server. Vui lòng thử lại.',
+      error: 'Lỗi server. Vui lòng thử lại.',
       details: error.message 
     });
   }
