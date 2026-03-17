@@ -32,12 +32,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:5174', 
     'http://localhost:3000',
-    'https://user-ashy-ten.vercel.app',
-    'https://user-ashy-ten.vercel.app/',
-    'https://doanthanhnien.vercel.app',
-    'https://doanthanhnien.vercel.app/',
-    'https://chatbotdoanthanhnien-myb7ruya.vercel.app',
-    'https://chatbotdoanthanhnien-myb7ruya.vercel.app/'
+    'https://doanthanhnien.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -90,4 +85,5 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server đang chạy tại http://0.0.0.0:${PORT}`);
   console.log(`📡 PORT từ env: ${process.env.PORT || 'không có, dùng 8080'}`);
+  console.log('🔧 CORS updated - version 2.0');
 });

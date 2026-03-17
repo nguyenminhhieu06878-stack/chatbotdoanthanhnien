@@ -54,27 +54,6 @@ export async function generateResponse(prompt, context, category = null, mode = 
     
     const groq = getGroqClient();
     const categoryInfo = category ? `\nĐang tìm kiếm trong loại văn bản: ${category}` : '';
-
-    // Simplified prompt for testing
-    const systemPrompt = `Bạn là trợ lý AI của Đoàn thanh niên Việt Nam. Hãy trả lời câu hỏi một cách thân thiện và hữu ích.`;
-    
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ],
-      model: 'llama3-8b-8192',
-      temperature: 0.7,
-      max_tokens: 1000
-    });
-
-    console.log('✅ Groq response received');
-    return completion.choices[0]?.message?.content || 'Xin lỗi, tôi không thể trả lời câu hỏi này.';
-  } catch (error) {
-    console.error('❌ Lỗi Groq API:', error);
-    throw error;
-  }
-}
     
     let systemPrompt = '';
     

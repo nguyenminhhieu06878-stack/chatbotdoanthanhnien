@@ -21,7 +21,7 @@ Vào tab "Variables" và thêm các biến sau:
 ```
 PORT=3001
 MONGODB_URI=your_mongodb_atlas_connection_string
-GROQ_API_KEY=your_groq_api_key
+GROQ_API_KEY=your_groq_api_key_here
 CHROMA_HOST=http://localhost:8000
 ```
 

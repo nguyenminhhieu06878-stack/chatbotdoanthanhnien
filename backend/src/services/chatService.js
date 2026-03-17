@@ -272,36 +272,44 @@ async function getDocumentStats(category = null) {
 
 export async function processChat(message, conversationHistory) {
   try {
+    console.log('🔄 Starting processChat...');
+    
     // Kiểm tra câu hỏi chào hỏi hoặc chung chung
     const greetingResponse = handleGreetingOrGeneral(message);
     if (greetingResponse) {
+      console.log('✅ Greeting response returned');
       return {
         message: greetingResponse,
         sources: []
       };
     }
     
+    console.log('🔍 Analyzing intent...');
     // Phân tích intent
     const { isAnalysis, isAdvisory, isResponsibility, isArticleQuery, articleNumber, requestedCategory } = analyzeIntent(message);
     
     // Xác định mode dựa trên intent (khai báo sớm để dùng trong toàn bộ function)
     const mode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
+    console.log(`📋 Mode: ${mode}, Analysis: ${isAnalysis}, Article: ${isArticleQuery}`);
     
     // Nếu là câu hỏi về điều khoản cụ thể
     if (isArticleQuery && articleNumber) {
+      console.log(`📖 Handling article query: ${articleNumber}`);
       return await handleArticleQuery(articleNumber, message, requestedCategory);
     }
     
     // Nếu là câu hỏi thống kê/phân tích
     if (isAnalysis) {
-      const stats = await getDocumentStats(requestedCategory);
-      
-      if (!stats) {
-        throw new Error('Không thể lấy thống kê');
-      }
-      
-      // Tạo context từ thống kê
-      const statsContext = `
+      console.log('📊 Handling analysis query...');
+      try {
+        const stats = await getDocumentStats(requestedCategory);
+        
+        if (!stats) {
+          throw new Error('Không thể lấy thống kê');
+        }
+        
+        // Tạo context từ thống kê
+        const statsContext = `
 Thống kê tài liệu${requestedCategory ? ` loại "${requestedCategory}"` : ''}:
 - Tổng số: ${stats.total} tài liệu
 - Phân loại:
@@ -310,133 +318,45 @@ ${Object.entries(stats.byCategory).map(([cat, count]) => `  + ${cat}: ${count} t
 Tài liệu gần đây:
 ${stats.recentDocuments.map((doc, idx) => `${idx + 1}. ${doc.title} (${doc.category})`).join('\n')}
 `;
-      
-      const response = await generateAnalysisResponse(message, statsContext);
-      
-      return {
-        message: response,
-        sources: stats.recentDocuments.map(doc => ({
-          title: doc.title,
-          category: doc.category,
-          documentId: doc._id
-        }))
-      };
+        
+        const response = await generateAnalysisResponse(message, statsContext);
+        
+        return {
+          message: response,
+          sources: stats.recentDocuments.map(doc => ({
+            title: doc.title,
+            category: doc.category,
+            documentId: doc._id
+          }))
+        };
+      } catch (analysisError) {
+        console.error('❌ Analysis failed:', analysisError);
+        // Fallback to simple response
+        return {
+          message: 'Xin lỗi, hiện tại không thể thực hiện phân tích thống kê. Vui lòng thử lại sau.',
+          sources: []
+        };
+      }
     }
-    
+
+    console.log('🔍 Searching documents...');
     // Tìm kiếm tài liệu liên quan (tăng số lượng nếu là câu hỏi tư vấn hoặc nhiệm vụ)
     const topK = isResponsibility ? 15 : isAdvisory ? 10 : 5;
     let searchResults;
     
     try {
       searchResults = await searchSimilarDocuments(message, topK, requestedCategory);
-      console.log(`🔍 Tìm thấy ${searchResults.documents[0].length} chunks liên quan (mode: ${isResponsibility ? 'responsibility' : isAdvisory ? 'advisory' : 'general'})`);
+      console.log(`🔍 Tìm thấy ${searchResults.documents[0].length} chunks liên quan (mode: ${mode})`);
     } catch (vectorError) {
-      console.warn('⚠️ ChromaDB không khả dụng, fallback sang tìm kiếm MongoDB:', vectorError.message);
+      console.warn('⚠️ Vector search failed, using fallback:', vectorError.message);
       
+      // Fallback: Dùng kiến thức chung của AI
+      console.log('🤖 Using AI general knowledge...');
       try {
-        // Fallback: Tìm kiếm trong MongoDB với text search
-        const query = requestedCategory ? { category: requestedCategory, status: 'ready' } : { status: 'ready' };
-        
-        // Thử tìm kiếm text trong content
-        const searchRegex = new RegExp(message.split(' ').filter(w => w.length > 2).join('|'), 'i');
-        const documents = await Document.find({
-          ...query,
-          $or: [
-            { content: searchRegex },
-            { title: searchRegex }
-          ]
-        }).select('title category content').limit(topK).maxTimeMS(5000);
-        
-        // Nếu không tìm thấy, lấy tất cả documents
-        if (documents.length === 0) {
-        // Không có tài liệu nào → tìm kiếm trên web
-        console.log('🌐 Không có tài liệu, tìm kiếm trên Google...');
-        
-        try {
-          // Tìm kiếm trên web
-          const webSearchQuery = `${message} Đoàn thanh niên Việt Nam`;
-          const webResults = await searchWeb(webSearchQuery);
-          
-          if (webResults && webResults.length > 0) {
-            // Tạo context từ kết quả web
-            const webContext = webResults.map((result, idx) => 
-              `[${idx + 1}. ${result.title}]\n${result.snippet}\nNguồn: ${result.url}`
-            ).join('\n\n---\n\n');
-            
-            const fallbackMode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
-            const response = await generateResponse(
-              message, 
-              `Thông tin từ tìm kiếm web:\n\n${webContext}`,
-              requestedCategory,
-              fallbackMode
-            );
-            
-            return {
-              message: response + '\n\n💡 *Lưu ý: Thông tin này được tìm kiếm từ Internet, không có trong tài liệu nội bộ.*',
-              sources: webResults.map(r => ({
-                title: r.title,
-                category: 'Web',
-                url: r.url
-              }))
-            };
-          }
-        } catch (webError) {
-          console.error('Lỗi tìm kiếm web:', webError);
-        }
-        
-        // Fallback: dùng kiến thức chung nếu web search thất bại
         const fallbackMode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
         const response = await generateResponse(
           message, 
-          'Không tìm thấy thông tin trong tài liệu nội bộ và web. Hãy trả lời dựa trên kiến thức chung về Đoàn thanh niên Cộng sản Hồ Chí Minh.',
-          requestedCategory,
-          fallbackMode
-        );
-        
-        return {
-          message: response + '\n\n💡 *Lưu ý: Thông tin này dựa trên kiến thức chung, chưa có trong tài liệu nội bộ.*',
-          sources: []
-        };
-      }
-      
-      if (documents.length === 0) {
-        return {
-          message: `Xin lỗi, tôi không tìm thấy thông tin về "${message}" trong các tài liệu hiện có. 😔
-
-**Gợi ý:**
-- Thử hỏi theo cách khác hoặc cụ thể hơn
-- Kiểm tra xem tài liệu liên quan đã được upload chưa
-- Liên hệ Admin để upload thêm tài liệu
-
-Bạn có muốn hỏi điều gì khác không?`,
-          sources: []
-        };
-      }
-      
-      // Tạo context từ MongoDB documents
-      const context = documents.map(doc => 
-        `[Tài liệu: ${doc.title} - ${doc.category}]\n${doc.content.substring(0, 2000)}`
-      ).join('\n\n---\n\n');
-      
-      const fallbackMode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
-      const response = await generateResponse(message, context, requestedCategory, fallbackMode);
-      
-      return {
-        message: response,
-        sources: documents.map(doc => ({
-          title: doc.title,
-          category: doc.category,
-          documentId: doc._id
-        }))
-      };
-      } catch (mongoError) {
-        console.warn('⚠️ MongoDB không khả dụng, fallback sang kiến thức chung:', mongoError.message);
-        
-        // Fallback cuối cùng: dùng kiến thức chung
-        const fallbackMode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
-        const response = await generateResponse(
-          message,
-          'Không kết nối được database. Hãy trả lời dựa trên kiến thức chung về Đoàn thanh niên Cộng sản Hồ Chí Minh.',
+          'Không tìm thấy thông tin trong tài liệu nội bộ. Hãy trả lời dựa trên kiến thức chung về Đoàn thanh niên Cộng sản Hồ Chí Minh.',
           requestedCategory,
           fallbackMode
         );
@@ -445,18 +365,20 @@ Bạn có muốn hỏi điều gì khác không?`,
           message: response + '\n\n💡 *Lưu ý: Thông tin này dựa trên kiến thức chung, không có trong tài liệu nội bộ.*',
           sources: []
         };
+      } catch (aiError) {
+        console.error('❌ AI fallback failed:', aiError);
+        return {
+          message: 'Xin lỗi, hiện tại hệ thống gặp sự cố. Vui lòng thử lại sau.',
+          sources: []
+        };
       }
     }
     
     // Nếu không tìm thấy tài liệu liên quan, trả lời thân thiện
     if (!searchResults.documents[0] || searchResults.documents[0].length === 0) {
-      // Thử tìm kiếm trên web nếu không có trong tài liệu
-      console.log('🌐 Không tìm thấy trong tài liệu, thử tìm trên web...');
+      console.log('📝 No documents found, using AI general knowledge...');
       
       try {
-        // Import web search (giả sử có sẵn)
-        const webSearchQuery = `${message} Đoàn thanh niên Việt Nam`;
-        
         // Tạo response từ kiến thức chung của AI
         const fallbackMode = isAdvisory ? 'advisory' : isResponsibility ? 'responsibility' : 'general';
         const response = await generateResponse(
@@ -470,28 +392,23 @@ Bạn có muốn hỏi điều gì khác không?`,
           message: response + '\n\n💡 *Lưu ý: Thông tin này dựa trên kiến thức chung, không có trong tài liệu nội bộ. Để có thông tin chính xác hơn, vui lòng liên hệ Ban Thường vụ hoặc upload thêm tài liệu liên quan.*',
           sources: []
         };
-      } catch (webError) {
-        console.error('Lỗi tìm kiếm web:', webError);
-      }
-      
-      return {
-        message: `Xin lỗi, tôi không tìm thấy thông tin về "${message}" trong các tài liệu hiện có. 😔
+      } catch (aiError) {
+        console.error('❌ AI general knowledge failed:', aiError);
+        return {
+          message: `Xin lỗi, tôi không tìm thấy thông tin về "${message}" trong các tài liệu hiện có. 😔
 
 **Gợi ý:**
 - Thử hỏi theo cách khác hoặc cụ thể hơn
 - Kiểm tra xem tài liệu liên quan đã được upload chưa
 - Liên hệ Admin để upload thêm tài liệu
 
-**Tôi có thể giúp bạn:**
-- Tra cứu các tài liệu đã có
-- Hướng dẫn cách đặt câu hỏi hiệu quả
-- Giải đáp thắc mắc chung về Đoàn thanh niên
-
 Bạn có muốn hỏi điều gì khác không?`,
-        sources: []
-      };
+          sources: []
+        };
+      }
     }
     
+    console.log('🤖 Generating response from documents...');
     // Tạo context từ kết quả tìm kiếm
     const context = searchResults.documents[0]
       .map((doc, idx) => {
@@ -534,6 +451,7 @@ Bạn có muốn hỏi điều gì khác không?`,
       };
     }
     
+    console.log('✅ Response generated successfully');
     return {
       message: response,
       sources: searchResults.metadatas[0].map(m => ({
@@ -543,7 +461,8 @@ Bạn có muốn hỏi điều gì khác không?`,
       }))
     };
   } catch (error) {
-    console.error('Lỗi xử lý chat:', error);
-    throw new Error('Không thể xử lý câu hỏi. Vui lòng thử lại.');
+    console.error('❌ Lỗi xử lý chat:', error);
+    console.error('Stack trace:', error.stack);
+    throw new Error(`Không thể xử lý câu hỏi: ${error.message}`);
   }
 }

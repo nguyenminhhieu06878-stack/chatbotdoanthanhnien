@@ -15,7 +15,7 @@ router.get('/test', async (req, res) => {
       timestamp: new Date().toISOString(),
       env: {
         hasGroqKey: !!process.env.GROQ_API_KEY,
-        hasMongoUri: !!process.env.MONGODB_URI,
+        hasMongoUri: !!process.env.MONGODB_URI || !!process.env.MONGO_URL,
         chromaHost: process.env.CHROMA_HOST
       }
     });
@@ -25,6 +25,32 @@ router.get('/test', async (req, res) => {
       status: 'error',
       error: error.message,
       stack: error.stack
+    });
+  }
+});
+
+// Simple test endpoint for chat
+router.post('/simple', async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    console.log('📩 Simple test message:', message);
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Vui lòng nhập câu hỏi' });
+    }
+
+    // Simple response without complex processing
+    res.json({
+      message: `Bạn đã hỏi: "${message}". Đây là phản hồi test từ backend.`,
+      sources: [],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Simple test failed:', error);
+    res.status(500).json({ 
+      error: 'Lỗi test đơn giản',
+      details: error.message
     });
   }
 });
@@ -39,7 +65,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Vui lòng nhập câu hỏi' });
     }
 
-    const response = await processChat(message, conversationHistory);
+    // Add timeout and better error handling
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 second timeout
+    });
+
+    const chatPromise = processChat(message, conversationHistory);
+    
+    const response = await Promise.race([chatPromise, timeoutPromise]);
+    
     console.log('✅ Trả lời thành công');
     res.json(response);
   } catch (error) {
@@ -47,11 +81,15 @@ router.post('/', async (req, res) => {
     console.error('Stack:', error.stack);
     
     // Trả về thông báo lỗi thân thiện
-    const errorMessage = error.message.includes('ECONNREFUSED') 
-      ? 'Không thể kết nối đến database. Vui lòng kiểm tra MongoDB và ChromaDB.'
-      : error.message.includes('API')
-      ? 'Lỗi kết nối AI service. Vui lòng kiểm tra Groq API key.'
-      : error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+    let errorMessage = 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+    
+    if (error.message.includes('timeout')) {
+      errorMessage = 'Yêu cầu quá lâu. Vui lòng thử lại.';
+    } else if (error.message.includes('ECONNREFUSED')) {
+      errorMessage = 'Không thể kết nối đến database. Vui lòng kiểm tra MongoDB và ChromaDB.';
+    } else if (error.message.includes('API') || error.message.includes('GROQ')) {
+      errorMessage = 'Lỗi kết nối AI service. Vui lòng kiểm tra Groq API key.';
+    }
     
     res.status(500).json({ 
       error: errorMessage,
