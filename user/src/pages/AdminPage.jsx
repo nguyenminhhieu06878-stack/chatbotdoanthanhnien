@@ -41,7 +41,7 @@ function AdminPage() {
 
   const loadDocuments = async () => {
     try {
-      const response = await api.get('/api/documents');
+      const response = await api.get('/api/documents-supabase');
       setDocuments(response.data);
     } catch (error) {
       console.error('Lỗi tải tài liệu:', error);
@@ -62,8 +62,8 @@ function AdminPage() {
     try {
       console.log('Uploading file:', formData.file.name);
       
-      // Use the upload-test endpoint which proxies to Railway
-      const response = await api.post('/api/upload-test', data, {
+      // Use the new Supabase upload endpoint
+      const response = await api.post('/api/upload-supabase', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -72,7 +72,7 @@ function AdminPage() {
       console.log('Upload response:', response.data);
       
       // Check if upload was successful
-      if (response.data.message && response.data.message.includes('thành công')) {
+      if (response.data.success) {
         alert('✅ Upload file thành công!');
         setFormData({ title: '', category: 'Chung', description: '', file: null });
         document.getElementById('fileInput').value = '';
