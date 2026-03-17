@@ -60,8 +60,8 @@ function AdminPage() {
     data.append('description', formData.description);
 
     try {
-      // Use Vercel proxy to upload to Railway
-      const response = await api.post('/api/documents/upload', data, {
+      // Use Vercel proxy to upload to Railway (test endpoint)
+      const response = await api.post('/api/upload-test', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
