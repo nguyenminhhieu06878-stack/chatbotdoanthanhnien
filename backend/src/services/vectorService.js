@@ -12,6 +12,12 @@ const client = new ChromaClient({
 const COLLECTION_NAME = 'doan_thanh_nien_docs';
 
 async function getCollection() {
+  // Kiểm tra nếu ChromaDB bị disabled
+  const chromaHost = process.env.CHROMA_HOST || 'http://localhost:8000';
+  if (chromaHost === 'disabled' || chromaHost === 'false') {
+    throw new Error('ChromaDB is disabled');
+  }
+  
   try {
     // Thử lấy collection, nếu không có thì tạo mới
     try {
@@ -34,61 +40,90 @@ async function getCollection() {
 }
 
 export async function embedDocument(documentId, content, metadata) {
-  const collection = await getCollection();
-  
-  // Chia nhỏ văn bản thành chunks lớn hơn (1200 ký tự) với overlap 200 ký tự
-  const chunks = splitIntoChunks(content, 1200, 200);
-  const ids = [];
-  const embeddings = [];
-  const documents = [];
-  const metadatas = [];
-  
-  console.log(`📝 Đang tạo embeddings cho ${chunks.length} chunks (chunk size: 1200, overlap: 200)...`);
-  
-  for (let i = 0; i < chunks.length; i++) {
-    const chunkId = `${documentId}_chunk_${i}`;
-    console.log(`   Chunk ${i + 1}/${chunks.length}...`);
-    const embedding = await getEmbedding(chunks[i]);
+  try {
+    const collection = await getCollection();
     
-    ids.push(chunkId);
-    embeddings.push(embedding);
-    documents.push(chunks[i]);
-    metadatas.push({
-      documentId,
-      chunkIndex: i,
-      ...metadata
+    // Chia nhỏ văn bản thành chunks lớn hơn (1200 ký tự) với overlap 200 ký tự
+    const chunks = splitIntoChunks(content, 1200, 200);
+    const ids = [];
+    const embeddings = [];
+    const documents = [];
+    const metadatas = [];
+    
+    console.log(`📝 Đang tạo embeddings cho ${chunks.length} chunks (chunk size: 1200, overlap: 200)...`);
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkId = `${documentId}_chunk_${i}`;
+      console.log(`   Chunk ${i + 1}/${chunks.length}...`);
+      const embedding = await getEmbedding(chunks[i]);
+      
+      ids.push(chunkId);
+      embeddings.push(embedding);
+      documents.push(chunks[i]);
+      metadatas.push({
+        documentId,
+        chunkIndex: i,
+        ...metadata
+      });
+    }
+    
+    await collection.add({
+      ids,
+      embeddings,
+      documents,
+      metadatas
     });
+    
+    console.log(`✅ Đã tạo xong ${chunks.length} embeddings`);
+    
+    return documentId;
+  } catch (error) {
+    console.error('❌ ChromaDB không khả dụng, bỏ qua embedding:', error.message);
+    console.log('📝 Tài liệu vẫn được lưu trong MongoDB');
+    return documentId;
   }
-  
-  await collection.add({
-    ids,
-    embeddings,
-    documents,
-    metadatas
-  });
-  
-  console.log(`✅ Đã tạo xong ${chunks.length} embeddings`);
-  
-  return documentId;
 }
 
 export async function searchSimilarDocuments(query, topK = 5, category = null) {
-  const collection = await getCollection();
-  const queryEmbedding = await getEmbedding(query);
-  
-  // Tạo where clause nếu có category filter
-  const queryParams = {
-    queryEmbeddings: [queryEmbedding],
-    nResults: topK
-  };
-  
-  if (category) {
-    queryParams.where = { category };
+  try {
+    const collection = await getCollection();
+    const queryEmbedding = await getEmbedding(query);
+    
+    // Tạo where clause nếu có category filter
+    const queryParams = {
+      queryEmbeddings: [queryEmbedding],
+      nResults: topK
+    };
+    
+    if (category) {
+      queryParams.where = { category };
+    }
+    
+    const results = await collection.query(queryParams);
+    
+    return results;
+  } catch (error) {
+    console.error('❌ ChromaDB không khả dụng:', error.message);
+    console.log('🔄 Fallback: Tìm kiếm trong MongoDB...');
+    
+    // Fallback: Tìm kiếm đơn giản trong MongoDB
+    const Document = (await import('../models/Document.js')).default;
+    const docs = await Document.find(
+      category ? { category } : {},
+      { title: 1, content: 1, category: 1 }
+    ).limit(topK);
+    
+    // Chuyển đổi format để tương thích
+    return {
+      documents: [docs.map(doc => doc.content || doc.title)],
+      metadatas: [docs.map(doc => ({
+        documentId: doc._id.toString(),
+        title: doc.title,
+        category: doc.category
+      }))],
+      distances: [docs.map(() => 0.5)] // Mock distance
+    };
   }
-  
-  const results = await collection.query(queryParams);
-  
-  return results;
 }
 
 function splitIntoChunks(text, chunkSize, overlap = 200) {

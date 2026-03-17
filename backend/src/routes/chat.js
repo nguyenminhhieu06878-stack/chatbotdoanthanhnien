@@ -3,6 +3,29 @@ import { processChat } from '../services/chatService.js';
 
 const router = express.Router();
 
+// Test route để debug
+router.get('/test', async (req, res) => {
+  try {
+    console.log('🧪 Testing chat service...');
+    
+    // Test basic response
+    const testResponse = await processChat('xin chào', []);
+    
+    res.json({
+      status: 'success',
+      message: 'Chat service is working',
+      testResponse: testResponse.message.substring(0, 100) + '...'
+    });
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
