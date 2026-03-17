@@ -20,8 +20,8 @@ Vào tab "Variables" và thêm các biến sau:
 
 ```
 PORT=3001
-MONGODB_URI=mongodb+srv://admin:u6kbG5LRU5si4MIm@cluster0.vkfer.mongodb.net/doan_thanh_nien?retryWrites=true&w=majority
-GROQ_API_KEY=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
+MONGODB_URI=your_mongodb_atlas_connection_string
+GROQ_API_KEY=your_groq_api_key
 CHROMA_HOST=http://localhost:8000
 ```
 
