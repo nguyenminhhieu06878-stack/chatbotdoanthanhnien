@@ -124,6 +124,8 @@ router.get('/stats/by-date', async (req, res) => {
 // Simple endpoint to create sample documents in database
 router.post('/create-samples', async (req, res) => {
   try {
+    const Document = (await import('../models/Document.js')).default;
+    
     // Create sample documents based on files in uploads directory
     const sampleDocs = [
       {
