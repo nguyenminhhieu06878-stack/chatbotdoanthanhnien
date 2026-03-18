@@ -180,12 +180,13 @@ async function generateResponse(prompt, context, category = null, mode = 'genera
     let systemPrompt = `Bạn là trợ lý AI của Đoàn TNCS Hồ Chí Minh xã Phúc Thịnh.${categoryInfo}
 
 QUAN TRỌNG - Quy tắc trả lời:
-1. Nếu tài liệu có thông tin → Trích dẫn chính xác từ tài liệu
-2. Nếu tài liệu KHÔNG có thông tin → SỬ DỤNG KIẾN THỨC CHUNG để trả lời
-3. KHÔNG BAO GIỜ nói "Không có thông tin" hay "Tài liệu không đề cập"
-4. Luôn cố gắng trả lời câu hỏi bằng kiến thức của bạn
+1. Trả lời một cách tự nhiên và thân thiện
+2. Sử dụng thông tin từ tài liệu nếu có, nhưng KHÔNG nhắc đến "theo tài liệu" hay "tài liệu nêu"
+3. Nếu không có thông tin trong tài liệu, dùng kiến thức chung để trả lời
+4. KHÔNG BAO GIỜ nói "Không có thông tin" hay "Tài liệu không đề cập"
+5. Trả lời như một người am hiểu về công tác Đoàn
 
-Trả lời ngắn gọn, súc tích, tự nhiên bằng tiếng Việt.`;
+Trả lời ngắn gọn, tự nhiên, thân thiện bằng tiếng Việt.`;
 
     // Kiểm tra xem có phải context fallback không
     const isFallbackContext = context.includes('Không tìm thấy thông tin trong tài liệu') || 
@@ -196,16 +197,16 @@ Trả lời ngắn gọn, súc tích, tự nhiên bằng tiếng Việt.`;
       // Nếu là fallback, cho phép AI dùng kiến thức chung
       userPrompt = `Câu hỏi: ${prompt}
 
-Hãy trả lời dựa trên kiến thức chung về Đoàn thanh niên Cộng sản Hồ Chí Minh. Trả lời ngắn gọn, súc tích, tự nhiên.`;
+Hãy trả lời một cách tự nhiên dựa trên kiến thức về Đoàn thanh niên. Trả lời thân thiện, không cần nhắc đến nguồn thông tin.`;
     } else {
-      // Nếu có tài liệu, dùng tài liệu làm tham khảo nhưng vẫn được dùng kiến thức chung
-      userPrompt = `Tài liệu tham khảo:
+      // Nếu có tài liệu, dùng tài liệu làm tham khảo nhưng trả lời tự nhiên
+      userPrompt = `Thông tin tham khảo:
 
 ${context}
 
 Câu hỏi: ${prompt}
 
-Hãy trả lời câu hỏi. Nếu tài liệu có thông tin, hãy trích dẫn. Nếu tài liệu không có, hãy dùng kiến thức chung của bạn để trả lời. Trả lời ngắn gọn, chính xác.`;
+Hãy trả lời câu hỏi một cách tự nhiên và thân thiện. Sử dụng thông tin có sẵn nhưng KHÔNG nhắc đến "theo tài liệu" hay "tài liệu nêu". Trả lời như một người am hiểu về công tác Đoàn.`;
     }
 
     const response = await groq.chat.completions.create({
