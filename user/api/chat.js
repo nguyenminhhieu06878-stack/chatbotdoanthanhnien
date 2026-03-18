@@ -12,7 +12,7 @@ function handleGreetingOrGeneral(message) {
   // Chào hỏi
   const greetings = ['xin chào', 'chào', 'hello', 'hi', 'hey', 'chào bạn', 'chào ai'];
   if (greetings.some(g => lowerMessage === g || lowerMessage.startsWith(g + ' ') || lowerMessage.endsWith(' ' + g))) {
-    return `Xin chào! 👋 Tôi là trợ lý AI của Đoàn thanh niên.
+    return `Xin chào! 👋 Tôi là trợ lý AI của Đoàn TNCS Hồ Chí Minh xã Phúc Thịnh.
 
 Tôi có thể giúp bạn:
 - 📖 Tra cứu điều khoản trong văn bản (VD: "Điều 5 là gì?")
@@ -28,7 +28,7 @@ Bạn muốn hỏi gì về Đoàn thanh niên?`;
   if (thanks.some(t => lowerMessage.includes(t))) {
     return `Rất vui được giúp đỡ bạn! 😊
 
-Nếu bạn còn câu hỏi gì khác về Đoàn thanh niên, cứ hỏi tôi nhé!`;
+Nếu bạn còn câu hỏi gì khác về Đoàn TNCS Hồ Chí Minh xã Phúc Thịnh, cứ hỏi tôi nhé!`;
   }
   
   return null; // Không phải câu chào hỏi/chung chung
@@ -177,7 +177,7 @@ async function generateResponse(prompt, context, category = null, mode = 'genera
     
     const categoryInfo = category ? `\nĐang tìm kiếm trong loại văn bản: ${category}` : '';
     
-    let systemPrompt = `Bạn là trợ lý AI của Đoàn thanh niên.${categoryInfo}
+    let systemPrompt = `Bạn là trợ lý AI của Đoàn TNCS Hồ Chí Minh xã Phúc Thịnh.${categoryInfo}
 
 QUAN TRỌNG - Quy tắc trả lời:
 1. Nếu tài liệu có thông tin → Trích dẫn chính xác từ tài liệu

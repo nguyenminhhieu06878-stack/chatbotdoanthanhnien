@@ -177,7 +177,7 @@ function ChatPage() {
                 <img src="/logo-doan.png" alt="Logo Đoàn" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Trợ lý AI Đoàn Thanh Niên</h1>
+                <h1 className="text-xl font-bold text-gray-900">Trợ lý AI Đoàn TNCS Hồ Chí Minh xã Phúc Thịnh</h1>
                 <p className="text-sm text-gray-500">Hỗ trợ tra cứu văn bản, tài liệu 24/7</p>
               </div>
             </div>
